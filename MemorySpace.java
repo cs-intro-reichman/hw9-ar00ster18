@@ -57,10 +57,25 @@ public class MemorySpace {
 	 *        the length (in words) of the memory block that has to be allocated
 	 * @return the base address of the allocated block, or -1 if unable to allocate
 	 */
-	public int malloc(int length) {		
-		//// Replace the following statement with your code
-		return -1;
-	}
+	public int malloc(int length) {
+        ListIterator itr = freeList.iterator();
+		while (itr.hasNext() && itr.current.block.length < length) {
+			itr.next();
+		}
+		if (itr.current == null) {
+			return -1;
+		}
+		MemoryBlock newBlock = new MemoryBlock(itr.current.block.baseAddress, length);
+		this.allocatedList.addLast(newBlock);
+		if (length == itr.current.block.length) {
+			this.freeList.remove(itr.current);
+		} else {
+			itr.current.block.baseAddress += length;
+			itr.current.block.length -= length;
+		}
+		System.out.println(allocatedList);
+		return newBlock.baseAddress;
+    }
 
 	/**
 	 * Frees the memory block whose base address equals the given address.
@@ -70,9 +85,22 @@ public class MemorySpace {
 	 * @param baseAddress
 	 *            the starting address of the block to freeList
 	 */
-	public void free(int address) {
-		//// Write your code here
-	}
+	public void free(int baseAddress) {
+        ListIterator itr = allocatedList.iterator();
+		if (itr.current == null) {
+			throw new IllegalArgumentException(
+					"index must be between 0 and size");
+		}
+		while (itr.current.next != null && itr.current.block.baseAddress != baseAddress) {
+			itr.next();
+		}
+		if (itr.current.block.baseAddress == baseAddress) {
+			this.freeList.addLast(itr.current.block);
+			this.allocatedList.remove(itr.current);
+		}
+    }
+	
+	
 	
 	/**
 	 * A textual representation of the free list and the allocated list of this memory space, 
@@ -88,6 +116,19 @@ public class MemorySpace {
 	 * In this implementation Malloc does not call defrag.
 	 */
 	public void defrag() {
-		//// Write your code here
-	}
+        for (int i = 0; i < this.freeList.getSize(); i++) {
+			MemoryBlock block = this.freeList.getBlock(i);
+			int sum = block.baseAddress + block.length;
+			ListIterator itr = freeList.iterator();
+			while (itr.hasNext()) {
+				if (itr.current.block.baseAddress == sum) {
+					block.length += itr.current.block.length;
+					this.freeList.remove(itr.current);
+					defrag();
+				}
+				itr.next();
+			}
+		}
+		return;
+    }
 }
